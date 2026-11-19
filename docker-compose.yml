@@ -1,0 +1,106 @@
+name: ecommerce_webapi
+
+services:
+  # 1. SCHREIB-DATENBANK: PostgreSQL 18
+  postgres_write:
+    image: postgres:18-alpine
+    container_name: ecommerce_postgres_write
+    environment:
+      POSTGRES_USER: ${DB_WRITE_USER}
+      POSTGRES_PASSWORD: ${DB_WRITE_PASSWORD}
+      POSTGRES_DB: ${DB_WRITE_NAME}
+    ports:
+      - "${DB_WRITE_PORT}:5432"
+    volumes:
+      - postgres_write_data:/var/lib/postgresql
+    networks:
+      - ecommerce_network
+
+  # 2. LESE-DATENBANK: MongoDB
+  mongodb_read:
+    image: mongo:8.0
+    container_name: ecommerce_mongodb_read
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${DB_READ_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${DB_READ_PASSWORD}
+      MONGO_INITDB_DATABASE: ${DB_READ_NAME}
+    ports:
+      - "${DB_READ_PORT}:27017"
+    volumes:
+      - mongodb_read_data:/data/db
+    networks:
+      - ecommerce_network
+
+  # 3. WEBOBERFLÄCHE: Adminer (Leichtgewichtige Verwaltung für PostgreSQL)
+  adminer:
+    image: adminer:latest
+    container_name: ecommerce_adminer
+    ports:
+      - "${PGADMIN_PORT}:8080" # Wir behalten deinen Port 8080 aus der .env bei!
+    depends_on:
+      - postgres_write
+    networks:
+      - ecommerce_network
+
+  # 4. WEBOBERFLÄCHE: Mongo Express (Verwaltung für MongoDB)
+  mongo_express:
+    image: mongo-express:latest
+    container_name: ecommerce_mongo_express
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${DB_READ_USER}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${DB_READ_PASSWORD}
+      ME_CONFIG_MONGODB_SERVER: mongodb_read # Nutzt den Servicenamen von oben
+      ME_CONFIG_MONGODB_PORT: 27017
+      ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_EXPRESS_USER}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD}
+    ports:
+      - "${MONGO_EXPRESS_PORT}:8081"
+    depends_on:
+      - mongodb_read
+    networks:
+      - ecommerce_network
+    
+  # 5. CACHE: Redis
+  redis_cache:
+    image: redis:7-alpine
+    container_name: ecommerce_redis_cache
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis_cache_data:/data
+    networks:
+      - ecommerce_network
+
+  # 6. WEBOBERFLÄCHE: Redis Commander (Verwaltung für Redis Cache)
+  redis_commander:
+    image: rediscommander/redis-commander:latest
+    container_name: ecommerce_redis_commander
+    environment:
+      REDIS_HOSTS: local:redis_cache:6379
+      HTTP_USER: ${REDIS_COMMANDER_USER}
+      HTTP_PASSWORD: ${REDIS_COMMANDER_PASSWORD}
+    ports:
+      - "${REDIS_COMMANDER_PORT}:8081"
+    depends_on:
+      - redis_cache
+    networks:
+      - ecommerce_network
+
+  # 7. MAIL-SERVER (Lokal): Mailpit fängt alle Test-E-Mails ab
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: ecommerce_mailpit
+    ports:
+      - "${SMTP_PORT}:1025"
+      - "${MAILPIT_UI_PORT}:8025"
+    networks:
+      - ecommerce_network
+
+volumes:
+  postgres_write_data:
+  mongodb_read_data:
+  redis_cache_data:  # <-- Diese Zeile hat gefehlt
+
+networks:
+  ecommerce_network:
+    driver: bridge

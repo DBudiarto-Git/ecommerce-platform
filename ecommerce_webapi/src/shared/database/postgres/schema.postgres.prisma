@@ -1,0 +1,117 @@
+datasource db {
+  provider = "postgresql"
+  // url = env("DATABASE_URL") <-- DIESE ZEILE ENTFERNEN!
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../../src/generated/postgres-client"
+  //output   = "../../../../node_modules/@generated/postgres-client"
+}
+
+model UserWrite {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String?
+  isActive  Boolean  @default(true) 
+  mustChangePassword Boolean  @default(false) 
+  
+  // NEUE SICHERHEITS-FELDER FÜR AUTH:
+  password         String    // Gespeichert als sicherer Bcrypt-Hash
+  resetToken       String?   @unique // Für "Passwort vergessen"
+  resetTokenExpiry DateTime? // Ablaufdatum des Reset-Tokens
+
+  createdAt DateTime @default(now())
+  
+  // 1:1 Relation zu Role
+  roleId    Int      
+  role      RoleWrite     @relation(fields: [roleId], references: [id])
+
+  // FÜGE DIESE ZEILE IM USER-MODELL HINZUFÜGEN:
+  customer  CustomerWrite? 
+}
+
+model RoleWrite {
+  id    Int    @id @default(autoincrement())
+  name  String @unique // z.B. "ADMIN", "USER", "MODERATOR"
+  
+  // KORREKTUR: Ein Array erlaubt unendlich viele User für diese Rolle!
+  users     UserWrite[]   // <-- Aus "user User?" wird "users User[]"
+}
+
+model CategoryWrite {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique // z.B. "Elektronik", "Kleidung"
+  slug        String         @unique // NEU: URL-freundlicher Name (z.B. "elektronik")
+  description String?
+  isActive    Boolean        @default(true) // NEU: Kategorie im Shop ein-/ausblenden
+  createdAt   DateTime  @default(now())
+
+  // 1:N Relation zu Product (Eine Kategorie hat viele Produkte)
+  products    ProductWrite[]
+}
+
+model ProductWrite {
+  id          Int      @id @default(autoincrement())
+  sku         String   @unique // NEU: Eindeutige Artikelnummer für Lager & Packer
+  title       String
+  slug        String   @unique // NEU: URL-freundlicher Titel für Astro-Shop
+  description String?
+  price       Float    // Preis als Fließkommazahl
+  stock       Int      @default(0) // Lagerbestand
+  imageUrl    String?  // NEU: Produktbild-URL
+  isActive    Boolean  @default(true) 
+  createdAt   DateTime @default(now())
+
+  // 1:N Relation zu Category (Ein Produkt gehört zu einer Kategorie)
+  categoryId  Int
+  category    CategoryWrite @relation(fields: [categoryId], references: [id])
+
+  orderItems  OrderItemWrite[]
+}
+
+model CustomerWrite {
+  id        Int      @id @default(autoincrement())
+  firstName String?
+  lastName  String?
+  phone     String?
+  address   String?   // Straße, Hausnummer, PLZ, Ort
+  createdAt DateTime @default(now())
+
+  // 1:1 Relation zu User (Ein Kunde gehört zu genau einem User-Account)
+  userId    Int      @unique
+  user      UserWrite     @relation(fields: [userId], references: [id])
+
+  orders    OrderWrite[]
+}
+
+model OrderWrite {
+  id         Int         @id @default(autoincrement())
+  totalPrice Float       // Gesamtpreis der Bestellung
+  status     String      @default("PENDING") // z.B. PENDING, PAID, SHIPPED
+  createdAt  DateTime    @default(now())
+
+  // NEU HINZUGEFÜGT: Speichert die exakte Lieferadresse für diese spezifische Bestellung!
+  deliveryAddress String?
+
+  // 1:N Relation zu Customer (Ein Kunde kann viele Bestellungen haben)
+  customerId Int
+  customer   CustomerWrite    @relation(fields: [customerId], references: [id])
+
+  // 1:N Relation zu OrderItem (Eine Bestellung hat mehrere Positionen)
+  items      OrderItemWrite[]
+}
+
+model OrderItemWrite {
+  id        Int      @id @default(autoincrement())
+  quantity  Int      // Menge des gekauften Produkts
+  price     Float    // Historischer Preis zum Zeitpunkt des Kaufs
+
+  // 1:N Relation zu Order (Gehört zu einer Hauptbestellung)
+  orderId   Int
+  order     OrderWrite    @relation(fields: [orderId], references: [id])
+
+  // 1:N Relation zu Product (Verweist auf das gekaufte Produkt)
+  productId Int
+  product   ProductWrite  @relation(fields: [productId], references: [id])
+}

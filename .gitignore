@@ -1,0 +1,15 @@
+# Abhängigkeiten & Builds
+node_modules/
+dist/
+
+# Umgebungsvariablen (schützt die Root-.env und alle Unter-.env-Dateien)
+.env
+.env.*
+
+# Generierter Prisma-Client
+ecommerce_webapi/src/generated/
+
+# Betriebssystem & Logs
+.DS_Store
+Thumbs.db
+*.log

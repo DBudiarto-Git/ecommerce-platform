@@ -1,0 +1,48 @@
+export type Language = 'de' | 'en';
+
+export const translations = {
+  de: {
+    appTitle: 'E-Commerce Admin',
+    roleLabel: 'Rolle',
+    changePassword: 'Passwort ändern',
+    logout: 'Ausloggen',
+    navigation: 'Navigation',
+    loginTitle: 'Mitarbeiter-Login',
+    loginSubtitle: 'Bitte melde dich mit deinen Zugangsdaten an. Neue Zugänge werden ausschließlich durch einen Administrator erstellt.',
+    emailLabel: 'E-Mail-Adresse',
+    passwordLabel: 'Passwort',
+    forgotPasswordLink: 'Passwort vergessen?',
+    loginButton: 'Einloggen',
+    loggingIn: 'Anmeldung läuft...',
+    navOverview: 'Übersicht & Statistiken',
+    navCatalog: 'Produkt-Katalog',
+    navProducts: 'Produkte verwalten',
+    navCategories: 'Kategorien',
+    navUsers: 'Benutzerverwaltung',
+    navStaff: 'Mitarbeiter',
+    navCustomers: 'Kunden',
+  },
+  en: {
+    appTitle: 'E-Commerce Admin',
+    roleLabel: 'Role',
+    changePassword: 'Change Password',
+    logout: 'Logout',
+    navigation: 'Navigation',
+    loginTitle: 'Staff Login',
+    loginSubtitle: 'Please sign in with your credentials. New accounts are created exclusively by an administrator.',
+    emailLabel: 'Email Address',
+    passwordLabel: 'Password',
+    forgotPasswordLink: 'Forgot password?',
+    loginButton: 'Sign In',
+    loggingIn: 'Signing in...',
+    navOverview: 'Overview & Statistics',
+    navCatalog: 'Product Catalog',
+    navProducts: 'Manage Products',
+    navCategories: 'Categories',
+    navUsers: 'User Management',
+    navStaff: 'Staff',
+    navCustomers: 'Customers',
+  },
+} as const;
+
+export type TranslationKey = keyof typeof translations.de;

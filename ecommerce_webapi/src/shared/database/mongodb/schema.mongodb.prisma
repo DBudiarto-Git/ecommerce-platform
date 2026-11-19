@@ -1,0 +1,80 @@
+datasource db {
+  provider = "mongodb"
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../../node_modules/@generated/mongodb-client"
+}
+
+// ==============================================================================
+// 1. BENUTZER & KUNDENPROFIL (Zusammengefasst für Profil- & Admin-Ansichten)
+// ==============================================================================
+model UserRead {
+  id             String   @id @map("_id") @db.ObjectId
+  postgresUserId Int      @unique
+  email          String   @unique
+  name           String?
+  roleName       String   // "ADMIN", "USER", etc. (Direkt denormalisiert)
+  createdAt      DateTime
+
+  // Kundendaten werden direkt als Embedded Document integriert
+  customerProfile CustomerProfileEmbedded?
+}
+
+type CustomerProfileEmbedded {
+  postgresCustomerId Int
+  firstName          String?
+  lastName           String?
+  phone              String?
+  address            String?
+}
+
+// ==============================================================================
+// 2. PRODUKTKATALOG (Optimiert für den schnellen Online-Shop)
+// ==============================================================================
+model ProductRead {
+  id              String   @id @map("_id") @db.ObjectId
+  postgresProductId Int    @unique
+  title           String
+  description     String?
+  price           Float
+  stock           Int
+  isActive        Boolean
+  createdAt       DateTime
+
+  // Denormalisierte Kategorie (Kein Join mehr nötig beim Rendern der Produktkarte)
+  categoryId      Int
+  categoryName    String   // z.B. "Elektronik"
+}
+
+// ==============================================================================
+// 3. BESTELLUNGEN & HISTORIE (Optimiert für Bestellübersichten des Kunden)
+// ==============================================================================
+model OrderRead {
+  id              String   @id @map("_id") @db.ObjectId
+  postgresOrderId Int      @unique
+  totalPrice      Float
+  status          String   // "PENDING", "PAID", etc.
+  deliveryAddress String?
+  createdAt       DateTime
+
+  // Welcher Kunde hat bestellt? (Denormalisierte Kundenmetadaten)
+  postgresCustomerId Int
+  customerName       String // Kombination aus Vor- und Nachname für schnelles Rendering
+
+  // Die Bestellpositionen werden vollständig eingebettet (Embedded Array)
+  // Ein Kunde möchte seine Items immer sofort sehen, ohne Joins!
+  items           OrderItemEmbedded[]
+}
+
+type OrderItemEmbedded {
+  postgresOrderItemId Int
+  quantity            Int
+  priceAtPurchase     Float // Historischer Preis zum Kaufzeitpunkt
+  
+  // Produkt-Metadaten direkt im Item
+  postgresProductId   Int
+  productTitle        String // Der Titel wird eingefroren (falls das Produkt sich später ändert)
+}
+
